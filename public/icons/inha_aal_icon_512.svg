@@ -1,0 +1,46 @@
+<svg width="512" height="512" viewBox="0 0 512 512" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>INHA AAL Icon</title>
+  <desc>INHA App Architecture Lab 512x512 아이콘</desc>
+
+  <!-- 배경 -->
+  <rect width="512" height="512" rx="108" fill="#0051A2"/>
+
+  <!-- 상단 장식 바 -->
+  <rect x="41" y="56" width="430" height="13" rx="6.5" fill="#FFFFFF" opacity="0.20"/>
+  <rect x="41" y="79" width="282" height="13" rx="6.5" fill="#FFFFFF" opacity="0.12"/>
+
+  <!-- INHA 상단 -->
+  <text
+    x="256" y="224"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="76" font-weight="500"
+    fill="#FFFFFF" text-anchor="middle"
+    letter-spacing="18" opacity="0.85">INHA</text>
+
+  <!-- AAL 메인 대형 -->
+  <text
+    x="256" y="370"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="174" font-weight="700"
+    fill="#FFFFFF" text-anchor="middle"
+    letter-spacing="10">AAL</text>
+
+  <!-- 구분선 -->
+  <rect x="61" y="396" width="390" height="3.5" rx="2" fill="#FFFFFF" opacity="0.25"/>
+
+  <!-- 하단 풀네임 -->
+  <text
+    x="256" y="452"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="26" font-weight="400"
+    fill="#FFFFFF" text-anchor="middle"
+    letter-spacing="2" opacity="0.65">APP ARCH LAB</text>
+
+  <!-- 우상단 육각 배지 -->
+  <polygon points="446,41 478,59 478,95 446,113 414,95 414,59" fill="#FFB703"/>
+  <text
+    x="446" y="84"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="26" font-weight="700"
+    fill="#003A75" text-anchor="middle">A</text>
+</svg>

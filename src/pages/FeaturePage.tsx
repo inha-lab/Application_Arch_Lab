@@ -1,0 +1,4 @@
+import { useParams } from 'react-router-dom'
+import { Card,PageHeader } from '@/components/ui'
+const names:Record<string,string>={participants:'수강생 관리',teams:'팀 관리',projects:'프로젝트 현황','project-plan':'프로젝트 기획서','weekly-reports':'주간(일)보고',reports:'주간(일)보고',team:'내 팀',monitoring:'팀별 모니터링'}
+export function FeaturePage({title,description}:{title?:string;description?:string}){const{feature}=useParams();const name=title??names[feature??'']??'준비 중인 화면';return <><PageHeader eyebrow="Application Architecture Lab" title={name}>{description??'명세의 다음 개발 단계에서 실제 데이터 관리 기능이 연결됩니다.'}</PageHeader><Card className="mt-9 border-dashed text-center"><div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-2xl">✦</div><h2 className="mt-5 text-lg font-black">기능 골격이 준비되었습니다</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">역할별 경로와 접근 구조를 먼저 완성했습니다. Supabase 테이블 연결과 폼 구현을 순차적으로 추가할 수 있습니다.</p></Card></>}

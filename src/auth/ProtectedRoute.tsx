@@ -1,0 +1,3 @@
+import { Navigate,Outlet,useLocation } from 'react-router-dom'
+import { useAuth } from './AuthProvider'
+export function ProtectedRoute(){const{session,profile,loading}=useAuth();const location=useLocation();if(loading)return <div className="grid min-h-screen place-items-center text-slate-500">사용자 정보를 불러오는 중…</div>;if(!session)return <Navigate to="/login" state={{from:location}} replace/>;const requestedRole=location.pathname.split('/')[1];if(['professor','student','researcher'].includes(requestedRole)&&requestedRole!==profile?.role)return <Navigate to={`/${profile?.role??'student'}`} replace/>;return <Outlet/>}

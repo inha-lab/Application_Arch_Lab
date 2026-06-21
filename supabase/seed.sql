@@ -1,0 +1,2 @@
+-- Local development seed data belongs here.
+-- Production accounts must be created through the approved Edge Functions.
