@@ -81,18 +81,30 @@ export function ParticipantManagePage() {
       participation_year: form.participation_year ? Number(form.participation_year) : null,
       course_type: nullable(form.course_type),
     }
-    const { error } = editingId
-      ? await supabase.from('participants').update(payload).eq('id', editingId)
-      : await supabase.from('participants').insert(payload)
+    const result = editingId
+      ? await supabase.from('participants').update(payload).eq('id', editingId).select('id,profile_id,is_registered').single()
+      : await supabase.from('participants').insert(payload).select('id,profile_id,is_registered').single()
     setBusy(false)
-    if (error) {
-      setMessage(error.message)
+    if (result.error) {
+      setMessage(result.error.message)
       return
+    }
+    const shouldRegisterAccount = !result.data.profile_id || !result.data.is_registered
+    if (shouldRegisterAccount) {
+      setBusy(true)
+      const { data: accountResult, error: accountError } = await supabase.functions.invoke('register-participants', { body: { participantIds: [result.data.id] } })
+      setBusy(false)
+      if (accountError || !accountResult?.success || Number(accountResult.failed ?? 0) > 0) {
+        const detail = (accountResult?.failures ?? []).map((item: { email: string; reason: string }) => `${item.email}(${item.reason})`).join(', ')
+        setMessage(`수강생 정보는 저장했지만 계정 생성에 실패했습니다.${detail ? ` ${detail}` : ''} 계정이 생성되어야 팀원 등록 화면에 표시됩니다.`)
+        await load()
+        return
+      }
     }
     setForm(emptyForm)
     setEditingId(null)
     setFormOpen(false)
-    setMessage(editingId ? '수강생 정보를 수정했습니다.' : '수강생을 등록했습니다.')
+    setMessage(editingId ? '수강생 정보를 수정하고 계정 연결 상태를 확인했습니다.' : '수강생을 등록하고 팀원 배정 후보에 반영했습니다.')
     await load()
   }
 
@@ -209,7 +221,7 @@ export function ParticipantManagePage() {
           <Field label="학생명" required value={form.name} onChange={(value) => setForm({ ...form, name: value })} />
           <Field label="학과" value={form.department} onChange={(value) => setForm({ ...form, department: value })} />
           <Field label="학번" value={form.student_no} onChange={(value) => setForm({ ...form, student_no: value })} />
-          <Field label="연락처" value={form.phone} onChange={(value) => setForm({ ...form, phone: value })} />
+          <Field label="연락처" required value={form.phone} onChange={(value) => setForm({ ...form, phone: value })} />
           <Field label="메일주소" type="email" required value={form.email} onChange={(value) => setForm({ ...form, email: value })} />
           <Field label="훈련직무" value={form.training_job} onChange={(value) => setForm({ ...form, training_job: value })} />
           <Field label="기업명" value={form.company_name} onChange={(value) => setForm({ ...form, company_name: value })} />

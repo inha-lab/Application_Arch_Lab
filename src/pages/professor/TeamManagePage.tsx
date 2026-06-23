@@ -1,4 +1,4 @@
-import { Building2, Crown, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { Building2, Crown, KeyRound, Pencil, Plus, Trash2, Users } from "lucide-react";
 import {
   type FormEvent,
   useCallback,
@@ -14,11 +14,21 @@ import type { Participant, Team } from "@/types/management.types";
 const emptyForm = { name: "", topic: "", project_name: "" };
 const inputClass =
   "mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500";
+interface StudentProfile {
+  id: string;
+  name: string;
+  email: string;
+  student_no: string | null;
+  department: string | null;
+  phone: string | null;
+}
+type TeamCandidate = Participant & { fromProfileOnly?: boolean };
 
 export function TeamManagePage() {
   const { semesters, selectedId, setSelectedId, loading } = useSemesters();
   const [teams, setTeams] = useState<Team[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [studentProfiles, setStudentProfiles] = useState<StudentProfile[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
@@ -28,7 +38,7 @@ export function TeamManagePage() {
 
   const load = useCallback(async () => {
     if (!selectedId) return;
-    const [teamResult, participantResult] = await Promise.all([
+    const [teamResult, participantResult, profileResult] = await Promise.all([
       supabase
         .from("teams")
         .select(
@@ -43,24 +53,60 @@ export function TeamManagePage() {
         )
         .eq("semester_id", selectedId)
         .order("name"),
+      supabase
+        .from("profiles")
+        .select("id,name,email,student_no,department,phone")
+        .eq("role", "student")
+        .order("name"),
     ]);
     if (teamResult.error) setMessage(teamResult.error.message);
     else setTeams((teamResult.data ?? []) as unknown as Team[]);
     if (participantResult.error) setMessage(participantResult.error.message);
     else setParticipants((participantResult.data ?? []) as Participant[]);
+    if (profileResult.error) setMessage(profileResult.error.message);
+    else setStudentProfiles((profileResult.data ?? []) as StudentProfile[]);
   }, [selectedId]);
   useEffect(() => {
     void load();
   }, [load]);
 
+  const profileOnlyCandidates = useMemo<TeamCandidate[]>(() => {
+    const participantProfileIds = new Set(
+      participants
+        .filter((item) => item.profile_id)
+        .map((item) => item.profile_id),
+    );
+    return studentProfiles
+      .filter((profile) => !participantProfileIds.has(profile.id))
+      .map((profile) => ({
+        id: profile.id,
+        semester_id: selectedId,
+        profile_id: profile.id,
+        name: profile.name,
+        department: profile.department,
+        student_no: profile.student_no,
+        phone: profile.phone,
+        email: profile.email,
+        training_job: null,
+        company_name: null,
+        participation_year: null,
+        course_type: "학생 계정",
+        is_registered: true,
+        fromProfileOnly: true,
+      }));
+  }, [participants, selectedId, studentProfiles]);
+  const candidates = useMemo<TeamCandidate[]>(
+    () => [...participants, ...profileOnlyCandidates],
+    [participants, profileOnlyCandidates],
+  );
   const participantByProfile = useMemo(
     () =>
       new Map(
-        participants
+        candidates
           .filter((item) => item.profile_id)
           .map((item) => [item.profile_id!, item]),
       ),
-    [participants],
+    [candidates],
   );
   const assigned = useMemo(() => {
     const map = new Map<string, string>();
@@ -71,7 +117,8 @@ export function TeamManagePage() {
     );
     return map;
   }, [teams, editingId]);
-  const eligible = participants.filter((item) => item.profile_id);
+  const eligible = candidates.filter((item) => item.profile_id && item.is_registered);
+  const unlinked = participants.filter((item) => !item.profile_id || !item.is_registered);
   const unassigned = eligible.filter(
     (item) =>
       !teams.some((team) =>
@@ -141,6 +188,28 @@ export function TeamManagePage() {
     setMessage(editingId ? "팀 정보를 수정했습니다." : "팀을 생성했습니다.");
     reset();
     setBusy(false);
+    await load();
+  }
+  async function registerParticipantAccounts(participantIds: string[]) {
+    if (!participantIds.length) return;
+    setBusy(true);
+    setMessage("수강생 계정을 연결하는 중…");
+    const { data, error } = await supabase.functions.invoke(
+      "register-participants",
+      { body: { participantIds } },
+    );
+    setBusy(false);
+    if (error || !data?.success || Number(data.failed ?? 0) > 0) {
+      const detail = (data?.failures ?? [])
+        .map((item: { email: string; reason: string }) => `${item.email}(${item.reason})`)
+        .join(", ");
+      setMessage(
+        `계정 연결에 실패했습니다.${detail ? ` ${detail}` : ""} 연락처와 메일주소를 확인해 주세요.`,
+      );
+      await load();
+      return;
+    }
+    setMessage(`수강생 계정 ${data.registered ?? participantIds.length}개를 연결했습니다. 팀원 선택 목록에 반영했습니다.`);
     await load();
   }
   function reset() {
@@ -259,7 +328,7 @@ export function TeamManagePage() {
                     />
                     <StudentSummary
                       participant={item}
-                      suffix={unavailable ? `${unavailable} 배정됨` : undefined}
+                      suffix={unavailable ? `${unavailable} 배정됨` : item.fromProfileOnly ? "수강생정보 미등록" : undefined}
                     />
                     {checked && (
                       <button
@@ -278,6 +347,45 @@ export function TeamManagePage() {
                 );
               })}
             </div>
+            {unlinked.length > 0 && (
+              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-black text-amber-900">
+                      계정 미연결 수강생 · {unlinked.length}명
+                    </h4>
+                    <p className="mt-1 text-xs text-amber-800">
+                      아래 학생은 수강생 목록에는 있지만 학생 계정 연결이 완료되지 않아 팀원 후보에 표시되지 않습니다.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    className="bg-amber-700 hover:bg-amber-800"
+                    disabled={busy}
+                    onClick={() => registerParticipantAccounts(unlinked.map((item) => item.id))}
+                  >
+                    <KeyRound className="h-4 w-4" />
+                    전체 계정 연결
+                  </Button>
+                </div>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {unlinked.map((item) => (
+                    <div className="flex items-center gap-3 rounded-xl bg-white p-3" key={item.id}>
+                      <StudentSummary participant={item} suffix="계정 미연결" />
+                      <button
+                        type="button"
+                        className="rounded-lg p-2 text-amber-700 hover:bg-amber-100"
+                        title="계정 연결"
+                        disabled={busy}
+                        onClick={() => registerParticipantAccounts([item.id])}
+                      >
+                        <KeyRound className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <label className="mt-5 block max-w-md text-sm font-black">
               팀장 선택
               <select className={inputClass} value={leaderId} onChange={event=>setLeaderId(event.target.value)} disabled={!selectedMembers.length}>
