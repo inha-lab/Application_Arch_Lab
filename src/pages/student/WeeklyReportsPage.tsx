@@ -15,6 +15,7 @@ interface Report {
   issues: string | null;
   support_needed: string | null;
   status: string;
+  submitted_at: string | null;
 }
 const empty = {
   week_no: "1",
@@ -31,6 +32,7 @@ export function WeeklyReportsPage() {
   const { team, loading } = useMyTeam();
   const [reports, setReports] = useState<Report[]>([]);
   const [form, setForm] = useState(empty);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const load = useCallback(async () => {
     if (!team) return;
@@ -44,9 +46,9 @@ export function WeeklyReportsPage() {
   useEffect(() => {
     void load();
   }, [load]);
-  async function save(event: FormEvent, submit = false) {
-    event.preventDefault();
+  async function save(submit = false) {
     if (!team || !profile) return;
+    const editingReport = reports.find((report) => report.id === editingId);
     const payload = {
       team_id: team.id,
       week_no: Number(form.week_no),
@@ -57,21 +59,61 @@ export function WeeklyReportsPage() {
       next_items: list(form.next_items),
       issues: form.issues,
       support_needed: form.support_needed,
-      status: submit ? "submitted" : "draft",
-      submitted_by: profile.id,
-      submitted_at: submit ? new Date().toISOString() : null,
+      status: submit ? "submitted" : (editingReport?.status ?? "draft"),
+      submitted_by: submit
+        ? profile.id
+        : editingReport
+          ? undefined
+          : profile.id,
+      submitted_at: submit
+        ? new Date().toISOString()
+        : editingReport?.submitted_at,
     };
-    const { error } = await supabase
-      .from("weekly_reports")
-      .upsert(payload, { onConflict: "team_id,week_no" });
+    const query = editingId
+      ? supabase.from("weekly_reports").update(payload).eq("id", editingId)
+      : supabase
+          .from("weekly_reports")
+          .insert(payload);
+    const { error } = await query;
     setMessage(
       error?.message ??
-        (submit ? "보고서를 제출했습니다." : "임시 저장했습니다."),
+        (editingId
+          ? submit
+            ? "보고서를 수정하여 다시 제출했습니다."
+            : "보고서 수정 내용을 저장했습니다."
+          : submit
+            ? "보고서를 제출했습니다."
+            : "임시 저장했습니다."),
     );
     if (!error) {
-      setForm({ ...empty, week_no: String(Number(form.week_no) + 1) });
+      const nextWeek = String(
+        Math.max(
+          Number(form.week_no),
+          ...reports.map((report) => report.week_no),
+        ) + 1,
+      );
       await load();
+      resetForm(nextWeek);
     }
+  }
+  function edit(report: Report) {
+    setEditingId(report.id);
+    setForm({
+      week_no: String(report.week_no),
+      report_date: report.report_date,
+      title: report.title,
+      progress_summary: report.progress_summary ?? "",
+      completed_items: itemText(report.completed_items),
+      next_items: itemText(report.next_items),
+      issues: report.issues ?? "",
+      support_needed: report.support_needed ?? "",
+    });
+    setMessage(`${report.week_no}주차 보고서를 수정하고 있습니다.`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function resetForm(nextWeek = "1") {
+    setEditingId(null);
+    setForm({ ...empty, week_no: nextWeek });
   }
   if (loading) return <p>불러오는 중…</p>;
   if (!team)
@@ -87,7 +129,37 @@ export function WeeklyReportsPage() {
       </PageHeader>
       <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_1fr]">
         <Card>
-          <form onSubmit={(event) => save(event, false)} className="space-y-4">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <h2 className="font-black">
+              {editingId ? "보고서 수정" : "새 보고서 작성"}
+            </h2>
+            {editingId && (
+              <Button
+                type="button"
+                className="bg-slate-600"
+                onClick={() => {
+                  resetForm(
+                    String(
+                      Math.max(
+                        0,
+                        ...reports.map((report) => report.week_no),
+                      ) + 1,
+                    ),
+                  );
+                  setMessage("");
+                }}
+              >
+                수정 취소
+              </Button>
+            )}
+          </div>
+          <form
+            onSubmit={(event: FormEvent) => {
+              event.preventDefault();
+              void save(false);
+            }}
+            className="space-y-4"
+          >
             <Field
               label="주차"
               type="number"
@@ -131,13 +203,13 @@ export function WeeklyReportsPage() {
               set={(value) => setForm({ ...form, support_needed: value })}
             />
             <div className="flex gap-2">
-              <Button>임시 저장</Button>
+              <Button>{editingId ? "수정 저장" : "임시 저장"}</Button>
               <Button
                 type="button"
                 className="bg-emerald-700"
-                onClick={(event) => save(event as unknown as FormEvent, true)}
+                onClick={() => void save(true)}
               >
-                제출
+                {editingId ? "수정 후 제출" : "제출"}
               </Button>
             </div>
           </form>
@@ -147,14 +219,26 @@ export function WeeklyReportsPage() {
         </Card>
         <div className="space-y-4">
           {reports.map((report) => (
-            <Card key={report.id}>
-              <div className="flex justify-between">
+            <Card
+              key={report.id}
+              className={editingId === report.id ? "ring-2 ring-inha-500" : ""}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
                 <strong>
                   {report.week_no}주차 ({report.report_date}) · {report.title}
                 </strong>
-                <span className="rounded-full bg-slate-100 px-2 py-1 text-xs">
-                  {report.status === "submitted" ? "제출" : "작성중"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-slate-100 px-2 py-1 text-xs">
+                    {statusName(report.status)}
+                  </span>
+                  <Button
+                    type="button"
+                    className="px-3 py-1.5 text-xs"
+                    onClick={() => edit(report)}
+                  >
+                    수정
+                  </Button>
+                </div>
               </div>
               <p className="mt-3 text-sm text-slate-600">
                 {report.progress_summary || "진행 요약 없음"}
@@ -227,4 +311,14 @@ function list(value: string) {
     .split("\n")
     .map((v) => v.trim())
     .filter(Boolean);
+}
+function itemText(value: unknown) {
+  if (Array.isArray(value)) return value.map(String).join("\n");
+  if (typeof value === "string") return value;
+  return "";
+}
+function statusName(status: string) {
+  if (status === "reviewed") return "검토완료";
+  if (status === "submitted") return "제출";
+  return "작성중";
 }
