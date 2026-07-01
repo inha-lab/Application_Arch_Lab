@@ -1,13 +1,13 @@
-import { Bell, BookOpen, ClipboardList, FolderKanban, History, LayoutDashboard, LogOut, Menu, PackageCheck, ShieldCheck, Users, X } from 'lucide-react'
+import { Bell, BookOpen, ClipboardList, Cpu, FolderKanban, History, LayoutDashboard, LogOut, Menu, PackageCheck, ShieldCheck, Users, X } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 
 const roleNames={professor:'교수',student:'학생',researcher:'연구원'}
 const menus={
-  professor:[['','대시보드',LayoutDashboard],['participants','수강생 관리',Users],['activity-logs','로그인 활동',History],['admin-users','관리자 관리',ShieldCheck],['teams','팀 관리',FolderKanban],['projects','프로젝트 현황',BookOpen],['reports','주간(일)보고',ClipboardList],['artifacts','산출물 관리',PackageCheck],['/announcements','공지사항',Bell]],
-  student:[['','대시보드',LayoutDashboard],['team','내 팀',Users],['project-plan','프로젝트 기획서',BookOpen],['weekly-reports','주간(일)보고',ClipboardList],['artifacts','산출물 제출',PackageCheck],['/announcements','공지사항',Bell]],
-  researcher:[['','대시보드',LayoutDashboard],['participants','수강생 관리',Users],['activity-logs','로그인 활동',History],['admin-users','관리자 관리',ShieldCheck],['teams','팀 관리',FolderKanban],['projects','프로젝트 현황',BookOpen],['reports','주간(일)보고',ClipboardList],['artifacts','산출물 관리',PackageCheck],['/announcements','공지사항',Bell]],
+  professor:[['','대시보드',LayoutDashboard],['participants','수강생 관리',Users],['activity-logs','로그인 활동',History],['admin-users','관리자 관리',ShieldCheck],['teams','팀 관리',FolderKanban],['projects','프로젝트 현황',BookOpen],['reports','주간(일)보고',ClipboardList],['artifacts','산출물 관리',PackageCheck],['gpu-reservations','GPU 예약',Cpu],['/announcements','공지사항',Bell]],
+  student:[['','대시보드',LayoutDashboard],['team','내 팀',Users],['project-plan','프로젝트 기획서',BookOpen],['weekly-reports','주간(일)보고',ClipboardList],['artifacts','산출물 제출',PackageCheck],['gpu-reservations','GPU 예약',Cpu],['/announcements','공지사항',Bell]],
+  researcher:[['','대시보드',LayoutDashboard],['participants','수강생 관리',Users],['activity-logs','로그인 활동',History],['admin-users','관리자 관리',ShieldCheck],['teams','팀 관리',FolderKanban],['projects','프로젝트 현황',BookOpen],['reports','주간(일)보고',ClipboardList],['artifacts','산출물 관리',PackageCheck],['gpu-reservations','GPU 예약',Cpu],['/announcements','공지사항',Bell]],
 } as const
 
 export function DashboardLayout(){

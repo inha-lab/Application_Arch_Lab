@@ -258,6 +258,7 @@ supabase secrets set SUPABASE_SERVICE_ROLE_KEY=...
 - [x] 팀 생성·수정·삭제, 팀원 배정 및 팀장 지정
 - [x] 학생 본인 팀 프로젝트 단계 수동 설정 및 관리자 팀장 지정
 - [x] 수강생 로그인 활동 기록 및 교수·연구원 조회 대시보드
+- [x] GPU 서버 사용 신청 및 팀별 시간 예약 현황 조회
 - [x] 교수 전용 관리자(교수/연구원) 등록 화면 및 Edge Function
 - [x] 수강생·관리자 목록 순번 표시 및 컬럼별 양방향 정렬
 - [x] 모바일 대시보드 상단 제목 및 메인 접속 QR 코드
@@ -659,6 +660,33 @@ create table public.login_activity_logs (
 - 조회: 본인 또는 교수·연구원
 - 관리자 지표: 기간별 로그인 횟수, 접속 수강생 수, 오늘 로그인 수, 수강생별 최근 로그인
 
+### 5-12. `gpu_reservations`
+
+GPU 서버 사용 신청 및 예약 현황을 관리한다.
+
+```sql
+create table public.gpu_reservations (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references public.teams(id) on delete cascade,
+  gpu_id text not null check (gpu_id in ('GPU_#0', 'GPU_#1')),
+  start_at timestamptz not null,
+  end_at timestamptz not null,
+  purpose text,
+  requested_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+```
+
+- GPU는 `GPU_#0`, `GPU_#1` 두 개로 운영한다.
+- 예약 시간은 1시간 단위로 입력한다.
+- 예약 종료는 `종료시간`으로 선택한다.
+- 종료시간이 시작 시간과 같거나 빠르면 다음날 종료로 처리한다.
+- 팀별 예약 시간의 최대 사용 제한은 두지 않는다.
+- 같은 GPU의 겹치는 시간 예약은 DB exclusion constraint로 차단한다.
+- 두 GPU를 동시에 선택하면 동일 시간에 GPU별 예약이 각각 생성된다.
+- 학생 화면에서도 전체 GPU 예약 현황의 팀명과 신청자 정보를 확인할 수 있도록 GPU 예약에 연결된 팀·신청자 프로필 조회 정책을 별도로 제공한다.
+
 ---
 
 ## 6. RLS 정책
@@ -886,13 +914,16 @@ export function makeInitialPassword(phone: string): string {
 | `/professor/teams` | 교수 | 팀 관리 |
 | `/professor/projects` | 교수 | 프로젝트 현황 관리 |
 | `/professor/reports` | 교수 | 주간(일)보고 관리 |
+| `/professor/gpu-reservations` | 교수 | GPU 서버 예약 현황 및 신청 |
 | `/student` | 학생 | 학생 대시보드 |
 | `/student/team` | 학생 | 내 팀 정보 |
 | `/student/project-plan` | 학생 | 프로젝트 기획서 작성 |
 | `/student/weekly-reports` | 학생 | 주간(일)보고 작성 |
+| `/student/gpu-reservations` | 학생 | GPU 서버 사용 신청 |
 | `/researcher` | 연구원 | 연구원 모니터링 대시보드 |
 | `/researcher/monitoring` | 연구원 | 팀별 진행상황 모니터링 |
 | `/researcher/activity-logs` | 연구원 | 수강생 로그인 활동 조회 |
+| `/researcher/gpu-reservations` | 연구원 | GPU 서버 예약 현황 및 신청 |
 
 ### 8-2. 역할 기반 접근 제어
 
@@ -1186,6 +1217,34 @@ export function makeInitialPassword(phone: string): string {
 - 이름·학번·이메일 검색
 - 접속 기기와 브라우저 구분
 - 수강생별 최근 로그인 확인
+
+---
+
+## 10-12. GPU 서버 사용 신청
+
+### 접근 권한
+
+- 교수·연구원: 전체 팀 예약 현황 조회, 팀 선택 후 예약 신청 및 취소
+- 학생: 전체 예약 현황 조회, 본인 팀 기준 예약 신청 및 취소
+
+### GPU 자원
+
+- `GPU_#0`
+- `GPU_#1`
+
+### 기능
+
+- 추가 메뉴 `GPU 예약`으로 제공
+- 날짜별 시간대 예약표 제공
+- GPU별 예약 건수와 총 예약 시간 요약
+- 예약일, 시작 시간, 종료시간, GPU 선택, 사용 목적 입력
+- 종료시간이 시작 시간과 같거나 빠르면 다음날 종료로 예약
+- 팀별 예약 시간 최대 제한 없음
+- GPU는 각각 신청 가능하며 두 GPU 동시 선택도 가능
+- 같은 GPU의 겹치는 시간 예약은 등록 불가
+- 학생과 관리자가 전체 GPU 예약 현황을 한눈에 확인
+- 전체 예약 현황에는 팀명, 예약 시간, 사용 목적, 신청자 정보를 표시
+- 예약 취소 기능 제공
 
 ---
 

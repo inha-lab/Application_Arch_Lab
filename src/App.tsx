@@ -19,6 +19,7 @@ import { AnnouncementsPage } from "@/pages/shared/AnnouncementsPage";
 import { TeamDetailPage } from "@/pages/shared/TeamDetailPage";
 import { LoginActivityPage } from "@/pages/manager/LoginActivityPage";
 import { ReportDetailPage } from "@/pages/shared/ReportDetailPage";
+import { GpuReservationPage } from "@/pages/shared/GpuReservationPage";
 
 export function App() {
   return (
@@ -77,6 +78,7 @@ export function App() {
             element={<ReportDetailPage />}
           />
           <Route path="/professor/artifacts" element={<ArtifactsPage />} />
+          <Route path="/professor/gpu-reservations" element={<GpuReservationPage />} />
           <Route path="/student/team" element={<StudentTeamPage />} />
           <Route path="/student/project-plan" element={<ProjectPlanPage />} />
           <Route
@@ -84,6 +86,7 @@ export function App() {
             element={<WeeklyReportsPage />}
           />
           <Route path="/student/artifacts" element={<ArtifactsPage />} />
+          <Route path="/student/gpu-reservations" element={<GpuReservationPage />} />
           <Route
             path="/researcher/participants"
             element={<ParticipantManagePage />}
@@ -120,6 +123,7 @@ export function App() {
             element={<ReportDetailPage />}
           />
           <Route path="/researcher/artifacts" element={<ArtifactsPage />} />
+          <Route path="/researcher/gpu-reservations" element={<GpuReservationPage />} />
           <Route path="/:role" element={<DashboardPage />} />
           <Route path="/:role/:feature" element={<FeaturePage />} />
         </Route>
