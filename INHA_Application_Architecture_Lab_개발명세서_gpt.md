@@ -1197,6 +1197,7 @@ export function makeInitialPassword(phone: string): string {
 ### 기능
 
 - 교수 공지사항 작성
+- 교수·연구원 공지사항 수정
 - 학기별 공지사항 관리
 - 중요 공지 상단 고정
 - 학생/연구원 공지 조회
