@@ -16,8 +16,13 @@ export function AuthProvider({children}:{children:ReactNode}){
   useEffect(()=>{
     if(!isSupabaseConfigured){setAuthReady(true);return}
     let active=true
-    supabase.auth.getSession().then(({data})=>{if(active){setSession(data.session);setAuthReady(true)}})
-    const{data}=supabase.auth.onAuthStateChange((_event,nextSession)=>{if(active){setSession(nextSession);setAuthReady(true)}})
+    let initialSessionChecked=false
+    supabase.auth.getSession().then(({data})=>{if(active){initialSessionChecked=true;setSession(data.session);setAuthReady(true)}})
+    const{data}=supabase.auth.onAuthStateChange((event,nextSession)=>{
+      if(!active)return
+      setSession(nextSession)
+      if(event!=='INITIAL_SESSION'||initialSessionChecked)setAuthReady(true)
+    })
     return()=>{active=false;data.subscription.unsubscribe()}
   },[])
 

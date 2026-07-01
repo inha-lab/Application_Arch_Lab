@@ -5,7 +5,7 @@ import { Button,Card,PageHeader } from '@/components/ui'
 import { useMyTeam } from '@/hooks/useMyTeam'
 import { supabase } from '@/lib/supabase'
 
-interface Artifact{id:string;title:string;artifact_type:string;url:string|null;file_path:string|null;description:string|null;submitted_at:string;teams?:{name:string}|null}
+interface Artifact{id:string;team_id:string;title:string;artifact_type:string;url:string|null;file_path:string|null;description:string|null;submitted_at:string;teams?:{name:string}|null}
 const initialForm={title:'',artifact_type:'GitHub',url:'',description:''}
 const artifactTypes=['GitHub','Notion','ERD','UML','기타']
 
@@ -19,7 +19,7 @@ export function ArtifactsPage(){
   const[busy,setBusy]=useState(false)
   const isStudent=profile?.role==='student'
 
-  const load=useCallback(async()=>{let query=supabase.from('project_artifacts').select('id,title,artifact_type,url,file_path,description,submitted_at,teams(name)').order('submitted_at',{ascending:false});if(isStudent&&team)query=query.eq('team_id',team.id);const{data,error}=await query;if(error)setMessage(error.message);else setRows((data??[]) as unknown as Artifact[])},[isStudent,team])
+  const load=useCallback(async()=>{let query=supabase.from('project_artifacts').select('id,team_id,title,artifact_type,url,file_path,description,submitted_at,teams(name)').order('submitted_at',{ascending:false});if(isStudent&&team)query=query.eq('team_id',team.id);const{data,error}=await query;if(error)setMessage(error.message);else setRows((data??[]) as unknown as Artifact[])},[isStudent,team])
   useEffect(()=>{if(!isStudent||team)void load()},[team,isStudent,load])
 
   async function submit(event:FormEvent<HTMLFormElement>){
@@ -37,13 +37,20 @@ export function ArtifactsPage(){
   async function download(path:string){const{data,error}=await supabase.storage.from('project-artifacts').createSignedUrl(path,60);if(error){setMessage(error.message);return}window.open(data.signedUrl,'_blank','noopener,noreferrer')}
 
   if(loading&&isStudent)return <p>불러오는 중…</p>
+  const grouped=groupByTeam(rows)
   return <>
     <PageHeader eyebrow="Deliverables" title="산출물 관리">GitHub, Notion, ERD, UML 링크와 첨부파일을 관리합니다.</PageHeader>
     {isStudent&&team&&<Card className="mt-8"><form onSubmit={submit} className="grid gap-4 md:grid-cols-2"><Field label="제목" value={form.title} set={value=>setForm({...form,title:value})} required/><label className="text-sm font-bold">유형<select className="mt-2 w-full rounded-xl border px-4 py-3" value={form.artifact_type} onChange={event=>setForm({...form,artifact_type:event.target.value})}>{artifactTypes.map(item=><option key={item}>{item}</option>)}</select></label><Field label="URL" type="url" value={form.url} set={value=>setForm({...form,url:value})}/><Field label="설명" value={form.description} set={value=>setForm({...form,description:value})}/><label className="rounded-xl border border-dashed border-slate-300 p-4 text-sm font-bold md:col-span-2"><span className="flex items-center gap-2"><FileUp className="h-4 w-4 text-inha-700"/>첨부파일 <span className="font-normal text-slate-400">최대 20MB</span></span><input className="mt-3 block w-full text-sm font-normal" type="file" accept=".pdf,.png,.jpg,.jpeg,.svg,.zip,.drawio,.json,.md,.doc,.docx,.ppt,.pptx" onChange={event=>setFile(event.target.files?.[0]??null)}/></label><Button className="md:col-span-2" disabled={busy}>{busy?'등록 중…':'산출물 등록'}</Button></form>{message&&<p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm">{message}</p>}</Card>}
     {!isStudent&&message&&<p className="mt-5 rounded-xl bg-red-50 p-3 text-sm text-red-700">{message}</p>}
-    <div className="mt-7 grid gap-4 md:grid-cols-2">{rows.map(row=><Card key={row.id}><div className="flex items-start justify-between"><PackageCheck className="h-5 w-5 text-inha-700"/><span className="text-xs text-slate-400">{row.teams?.name}</span></div><h2 className="mt-4 font-black">{row.title}</h2><p className="mt-1 text-xs font-bold text-slate-500">{row.artifact_type}</p><p className="mt-3 text-sm text-slate-600">{row.description}</p><div className="mt-4 flex flex-wrap gap-2">{row.url&&<a className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-sm font-bold text-inha-700" href={row.url} target="_blank" rel="noreferrer">URL 열기<ExternalLink className="h-4 w-4"/></a>}{row.file_path&&<button className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700" onClick={()=>download(row.file_path!)}>첨부파일<Download className="h-4 w-4"/></button>}</div></Card>)}{!rows.length&&<Card className="border-dashed text-center text-slate-500 md:col-span-2">등록된 산출물이 없습니다.</Card>}</div>
+    <div className="mt-7 space-y-6">{grouped.map(group=><Card key={group.teamKey} className="p-0 overflow-hidden"><div className="flex flex-wrap items-center justify-between gap-3 border-b bg-slate-50 p-5"><div><h2 className="font-black text-inha-950">{group.teamName}</h2><p className="mt-1 text-xs text-slate-500">최신 산출물 {formatDate(group.latestAt)} · 총 {group.items.length}건</p></div><PackageCheck className="h-5 w-5 text-inha-700"/></div><div className="grid gap-4 p-5 md:grid-cols-2">{group.items.map(row=><Card key={row.id} className="border-slate-200 shadow-none"><div className="flex items-start justify-between gap-3"><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-inha-700">{row.artifact_type}</span><span className="text-xs text-slate-400">{formatDate(row.submitted_at)}</span></div><h3 className="mt-4 font-black">{row.title}</h3><p className="mt-3 min-h-10 text-sm text-slate-600">{row.description||'설명 없음'}</p><div className="mt-4 flex flex-wrap gap-2">{row.url&&<a className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-sm font-bold text-inha-700" href={row.url} target="_blank" rel="noreferrer">URL 열기<ExternalLink className="h-4 w-4"/></a>}{row.file_path&&<button className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700" onClick={()=>download(row.file_path!)}>첨부파일<Download className="h-4 w-4"/></button>}</div></Card>)}</div></Card>)}{!grouped.length&&<Card className="border-dashed text-center text-slate-500">등록된 산출물이 없습니다.</Card>}</div>
   </>
 }
 
 function Field({label,value,set,type='text',required=false}:{label:string;value:string;set:(value:string)=>void;type?:string;required?:boolean}){return <label className="text-sm font-bold">{label}<input required={required} className="mt-2 w-full rounded-xl border px-4 py-3" type={type} value={value} onChange={event=>set(event.target.value)}/></label>}
 function safeName(name:string){return name.normalize('NFKC').replace(/[^a-zA-Z0-9._-]+/g,'_').slice(-120)||'attachment'}
+function groupByTeam(rows:Artifact[]){
+  const map=new Map<string,{teamKey:string;teamName:string;latestAt:string;items:Artifact[]}>()
+  rows.forEach(row=>{const key=row.team_id||'unknown';const current=map.get(key);if(current){current.items.push(row);if(new Date(row.submitted_at).getTime()>new Date(current.latestAt).getTime())current.latestAt=row.submitted_at}else map.set(key,{teamKey:key,teamName:row.teams?.name||'팀 미지정',latestAt:row.submitted_at,items:[row]})})
+  return Array.from(map.values()).map(group=>({...group,items:[...group.items].sort((a,b)=>new Date(b.submitted_at).getTime()-new Date(a.submitted_at).getTime())})).sort((a,b)=>new Date(b.latestAt).getTime()-new Date(a.latestAt).getTime())
+}
+function formatDate(value:string){const date=new Date(value);return Number.isNaN(date.getTime())?value:date.toLocaleDateString('ko-KR')}

@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  ClipboardList,
   CheckCircle2,
   FileText,
   FolderKanban,
@@ -152,6 +153,13 @@ export function MonitoringPage({
                 이슈 또는 지원 요청이 있습니다.
               </div>
             )}
+            <Link
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-inha-950 px-4 py-3 text-sm font-black text-white transition hover:bg-inha-800"
+              to={`/${profile?.role==='researcher'?'researcher':'professor'}/${mode==='monitoring'?'monitoring':'projects'}/${team.id}`}
+            >
+              <ClipboardList className="h-4 w-4" />
+              전체리포트
+            </Link>
           </Card>
         ))}
         {!teams.length && !error && (

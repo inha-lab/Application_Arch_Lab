@@ -1119,6 +1119,11 @@ export function makeInitialPassword(phone: string): string {
 - 주차별 보고서 제출 여부 확인
 - 산출물 제출 현황 확인
 - 팀별 이슈 및 지원 요청 확인
+- 프로젝트 현황 카드에 `전체리포트` 버튼 제공
+- 전체리포트 상세 화면에서 팀명, 프로젝트 주제, 기업명, GitHub/Notion/Demo URL, 팀원정보, 프로젝트 기획서, 주간(일)보고 전체 내용, 산출물 목록을 통합 확인
+- 전체리포트 상세 화면에서 브라우저 출력 기능 제공
+- 전체리포트 상세 화면에서 HTML 파일 다운로드 기능 제공
+- 전체리포트 출력 및 다운로드 상단에는 제목 `인하대학교 어플리케이션 설계 PBL- 2026여름학기`와 생성일자(현재 날짜 및 시간)를 표시
 
 ### 대시보드 지표
 
@@ -1151,6 +1156,8 @@ export function makeInitialPassword(phone: string): string {
 - 제출자 기록
 - 제출 시각 기록
 - 교수/연구원 확인
+- 교수/연구원 산출물 관리 화면은 팀별로 그룹핑하여 표시
+- 각 팀 그룹과 그룹 내 산출물은 최신 제출 순서 기준으로 정렬
 
 ---
 
@@ -1228,6 +1235,15 @@ export default defineConfig({
   base: '/Application_Arch_Lab/',
 })
 ```
+
+### 11-4. GitHub Pages 새로고침 경로 복원
+
+- GitHub Pages는 SPA 하위 경로를 직접 새로고침하면 정적 파일 경로로 해석하므로 `public/404.html`에서 원래 URL을 `sessionStorage.redirect`에 저장한 뒤 `/Application_Arch_Lab/`로 이동한다.
+- 앱 초기화 시 저장된 redirect URL의 `pathname + search + hash`를 그대로 복원한다.
+- 복원 시 `/Application_Arch_Lab` base path를 제거하지 않아 `https://inha-lab.github.io/Application_Arch_Lab/professor/artifacts` 같은 현재 페이지 주소가 유지된다.
+- redirect URL에 base path가 누락된 경우에도 `/Application_Arch_Lab`을 보정해 라우터 기준 경로를 유지한다.
+- 새로고침 직후 Supabase 초기 인증 이벤트가 먼저 발생하더라도 `getSession()` 기반 초기 세션 확인이 완료될 때까지 보호 라우트가 로그인 화면으로 이동하지 않도록 한다.
+- Supabase `persistSession` 기반 저장 세션을 복원해 새로고침 후에도 로그인 상태를 유지한다.
 
 ---
 
