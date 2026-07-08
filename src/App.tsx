@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { useAuth } from "@/auth/AuthProvider";
 import { ProtectedRoute } from "@/auth/ProtectedRoute";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { LandingPage } from "@/pages/LandingPage";
@@ -28,12 +29,7 @@ export function App() {
     <Routes>
       <Route
         path="/"
-        element={
-          <>
-            <LandingPage />
-            <HomeQrCard />
-          </>
-        }
+        element={<HomePage />}
       />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/evaluate" element={<EvaluatePage />} />
@@ -135,5 +131,23 @@ export function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+  );
+}
+
+function HomePage() {
+  const { session, profile, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="grid min-h-screen place-items-center text-slate-500">
+        사용자 정보를 확인하는 중…
+      </div>
+    );
+  }
+  if (session && profile) return <Navigate to={`/${profile.role}`} replace />;
+  return (
+    <>
+      <LandingPage />
+      <HomeQrCard />
+    </>
   );
 }

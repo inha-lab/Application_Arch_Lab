@@ -1304,6 +1304,8 @@ export default defineConfig({
 - redirect URL에 base path가 누락된 경우에도 `/Application_Arch_Lab`을 보정해 라우터 기준 경로를 유지한다.
 - 새로고침 직후 Supabase 초기 인증 이벤트가 먼저 발생하더라도 `getSession()` 기반 초기 세션 확인이 완료될 때까지 보호 라우트가 로그인 화면으로 이동하지 않도록 한다.
 - Supabase `persistSession` 기반 저장 세션을 복원해 새로고침 후에도 로그인 상태를 유지한다.
+- 로그인 상태에서 `/Application_Arch_Lab/` 홈 경로로 이동하면 공개 소개 화면 대신 사용자 역할 대시보드로 이동한다.
+- 대시보드 좌측 로고 링크는 공개 홈이 아니라 현재 역할 대시보드로 이동한다.
 
 ---
 
