@@ -20,6 +20,8 @@ import { TeamDetailPage } from "@/pages/shared/TeamDetailPage";
 import { LoginActivityPage } from "@/pages/manager/LoginActivityPage";
 import { ReportDetailPage } from "@/pages/shared/ReportDetailPage";
 import { GpuReservationPage } from "@/pages/shared/GpuReservationPage";
+import { EvaluatePage } from "@/pages/evaluation/EvaluatePage";
+import { EvaluationAdminPage } from "@/pages/evaluation/EvaluationAdminPage";
 
 export function App() {
   return (
@@ -34,6 +36,7 @@ export function App() {
         }
       />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/evaluate" element={<EvaluatePage />} />
       <Route
         path="/unauthorized"
         element={
@@ -79,6 +82,7 @@ export function App() {
           />
           <Route path="/professor/artifacts" element={<ArtifactsPage />} />
           <Route path="/professor/gpu-reservations" element={<GpuReservationPage />} />
+          <Route path="/professor/evaluation" element={<EvaluationAdminPage />} />
           <Route path="/student/team" element={<StudentTeamPage />} />
           <Route path="/student/project-plan" element={<ProjectPlanPage />} />
           <Route
@@ -124,6 +128,7 @@ export function App() {
           />
           <Route path="/researcher/artifacts" element={<ArtifactsPage />} />
           <Route path="/researcher/gpu-reservations" element={<GpuReservationPage />} />
+          <Route path="/researcher/evaluation" element={<EvaluationAdminPage />} />
           <Route path="/:role" element={<DashboardPage />} />
           <Route path="/:role/:feature" element={<FeaturePage />} />
         </Route>
